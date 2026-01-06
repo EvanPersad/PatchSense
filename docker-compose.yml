@@ -1,0 +1,45 @@
+services:
+  backend:
+    build: ./BackEnd
+    container_name: patchsense_backend
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    environment:
+      PORT: 8080
+      DATABASE_URL: postgres://patchsense:patchsense@postgres:5432/patchsense
+      REDIS_URL: redis://redis:6379/0
+    ports:
+      - "8080:8080"
+
+  postgres:
+    image: postgres:16
+    container_name: patchsense_postgres
+    environment:
+      POSTGRES_USER: patchsense
+      POSTGRES_PASSWORD: patchsense
+      POSTGRES_DB: patchsense
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U patchsense -d patchsense"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  redis:
+    image: redis:7-alpine
+    container_name: patchsense_redis
+    ports:
+      - "6379:6379"
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis_data:/data
+
+volumes:
+  postgres_data:
+  redis_data:
